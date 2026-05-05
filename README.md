@@ -47,8 +47,8 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/restic` - Data storage
-- `./rootfs/data/restic` - Data storage
+- `./volumes/config/restic` - Data storage
+- `./volumes/data/restic` - Data storage
 
 ## 🔍 Logging
 
