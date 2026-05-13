@@ -17,12 +17,16 @@ services:
     logging: *default-logging
     networks:
       - restic
+      - proxy
+      - cloudflare
     ports:
       - "172.17.0.1:8111:8000"
     environment:
       TZ: ${TZ:-America/New_York}
       PASSWORD_FILE: ${PASSWORD_FILE:-/data/.htpasswd}
       OPTIONS: ${OPTIONS:-}
+      CONTAINER_NAME: restic-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     volumes:
       - ./volumes/data/restic:/data
     healthcheck:
@@ -30,8 +34,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://restic-app:8000'
+      - 'cloudflare.hostname=restic.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.restic-app.entrypoints=http'
+      - 'traefik.http.routers.restic-app-secure.tls=true'
+      - 'traefik.http.routers.restic-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.restic-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.restic-app.middlewares=restic-app-https-redirect'
+      - 'traefik.http.routers.restic-app-secure.entrypoints=https'
+      - 'traefik.http.routers.restic-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.restic-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.restic-app-secure.service=restic-app'
+      - 'traefik.http.services.restic-app.loadbalancer.server.port=8000'
 
 networks:
   restic:
     name: restic
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
