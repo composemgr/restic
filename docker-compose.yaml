@@ -1,5 +1,6 @@
 # nginx proxy address - http://172.17.0.1:8111
 
+name: restic
 x-logging: &default-logging
   driver: json-file
   options:
@@ -8,27 +9,29 @@ x-logging: &default-logging
 
 services:
   restic:
-    image: restic/restic:latest
+    image: restic/rest-server:latest
+    pull_policy: always
     container_name: restic-app
-    restart: unless-stopped
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
     logging: *default-logging
     networks:
       - restic
     ports:
-      - "8111:8111"
+      - "172.17.0.1:8111:8000"
     environment:
       TZ: ${TZ:-America/New_York}
-      PUID: ${SERVICE_USER:-1000}
-      PGID: ${SERVICE_GROUP:-1000}
+      PASSWORD_FILE: ${PASSWORD_FILE:-/data/.htpasswd}
+      OPTIONS: ${OPTIONS:-}
     volumes:
-      - ./volumes/config/restic:/config
       - ./volumes/data/restic:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8111"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000"]
       interval: 30s
       timeout: 10s
       retries: 3
 
 networks:
   restic:
+    name: restic
     external: false
